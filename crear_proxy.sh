@@ -14,7 +14,13 @@ fi
 # Actualizar e instalar paquetes necesarios
 echo -e "${GREEN}Actualizando e instalando paquetes necesarios...${NC}"
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y squid apache2-utils curl
+sudo apt install -y squid curl
+
+# Instalar apache2-utils si htpasswd no está instalado
+if ! command -v htpasswd &> /dev/null; then
+    echo -e "${GREEN}Instalando apache2-utils para htpasswd...${NC}"
+    sudo apt install -y apache2-utils
+fi
 
 # Pedir información del usuario
 read -p "Introduce el nombre de usuario para el proxy: " USERNAME
