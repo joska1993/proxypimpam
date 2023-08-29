@@ -45,7 +45,7 @@ install_3proxy() {
   cd /usr/local/etc || exit 1
   wget https://github.com/z3APA3A/3proxy/archive/0.8.12.tar.gz || exit 1
   tar zxvf 0.8.12.tar.gz && rm 0.8.12.tar.gz || exit 1
-  mv 3proxy-0.8.12 3proxy || exit 1
+  mv -T 3proxy-0.8.12 3proxy || exit 1
   cd 3proxy || exit 1
   make -f Makefile.Linux && make -f Makefile.Linux install || exit 1
   mkdir log || exit 1
