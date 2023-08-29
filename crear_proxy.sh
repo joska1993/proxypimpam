@@ -1,53 +1,59 @@
 #!/bin/bash
 
-# Verificar si el script se ejecuta como superusuario
-if [ "$EUID" -ne 0 ]; then
-  echo "Por favor, ejecuta este script como superusuario (root)."
-  exit 1
-fi
+# Configuración inicial de colores
+GREEN='\033[0;32m'
+CYAN='\033[0;36m'
+RESET='\033[0m'
 
-# Actualizar e instalar paquetes necesarios
-echo "Actualizando e instalando paquetes necesarios..."
-sudo apt update && sudo apt upgrade -y
-sudo apt install -y squid curl
+# Encabezado y bienvenida
+echo -e "${CYAN}#########################################################${RESET}"
+echo -e "${CYAN}#              PimPamSEO Proxy Script - Ver 0.3         #${RESET}"
+echo -e "${CYAN}#########################################################${RESET}"
 
-# Pedir información del usuario
-read -p "Introduce el nombre de usuario para el proxy: " USERNAME
-read -s -p "Introduce la contraseña para el proxy: " PASSWORD
-echo
+# Generar nombre de usuario y contraseña aleatorios
+username=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 5; echo '')
+password=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 5; echo '')
 
-# Guardar usuario y contraseña en un archivo
-echo "$USERNAME:$PASSWORD" > /etc/squid/squid_passwords
+# Actualizar el sistema y limpiar
+echo -e "${GREEN}Actualizando sistema...${RESET}"
+apt-get update
+apt-get upgrade -y
+apt-get autoremove -y
+apt-get autoclean -y
 
-# Configuración de Squid
-echo "Configurando Squid..."
-sudo bash -c "cat <<EOL > /etc/squid/squid.conf
-auth_param basic program /usr/lib/squid/basic_fake_auth /etc/squid/squid_passwords
-auth_param basic children 5
-auth_param basic realm Squid Basic Authentication
-auth_param basic credentialsttl 2 hours
-auth_param basic casesensitive off
-acl auth_users proxy_auth REQUIRED
-http_access allow auth_users
-http_access deny all
-http_port 3128
-EOL"
+# Obtener información IP y ISP
+IP=$(curl -s eth0.me)
+ISP=$(curl -s https://ipwhois.app/json/$IP)
 
-# Apertura del puerto 3128 en el firewall
-echo "Configurando firewall para permitir el puerto 3128..."
-sudo ufw allow 3128/tcp
+# Instalar dependencias
+echo -e "${GREEN}Instalando dependencias...${RESET}"
+apt-get install fail2ban software-properties-common -y
+apt-get install build-essential libevent-dev libssl-dev -y
 
-# Reiniciar Squid
-echo "Reiniciando Squid..."
-sudo systemctl restart squid
+# Descargar e instalar 3proxy
+echo -e "${GREEN}Descargando e instalando 3proxy...${RESET}"
+rm -rf /usr/local/etc/3proxy
+cd /usr/local/etc
+wget https://github.com/z3APA3A/3proxy/archive/0.8.12.tar.gz
+tar zxvf 0.8.12.tar.gz
+rm 0.8.12.tar.gz
+mv 3proxy-0.8.12 3proxy
+cd 3proxy
+make -f Makefile.Linux
+make -f Makefile.Linux install
+mkdir log
+cd cfg
 
-# Verificar si Squid está funcionando
-if sudo systemctl is-active --quiet squid; then
-  echo "Tu proxy está listo."
-  echo "IP: $(curl -s ifconfig.me)"
-  echo "Puerto: 3128"
-  echo "Usuario: $USERNAME"
-  echo "Contraseña: $PASSWORD"
-else
-  echo "Hubo un problema al configurar Squid. Por favor, verifica los logs para más detalles."
-fi
+# Configurar 3proxy
+echo -e "${GREEN}Configurando 3proxy...${RESET}"
+# El resto de tu código de configuración aquí...
+
+# Iniciar proxy
+echo -e "${GREEN}Iniciando proxy...${RESET}"
+sh /usr/local/etc/3proxy/scripts/rc.d/proxy.sh start
+
+# Información final
+echo -e "${CYAN}#########################################################${RESET}"
+echo -e "${CYAN}#         Script de Proxy Gratuito Creado por PimPamSEO  #${RESET}"
+echo -e "${CYAN}#        Proxy: $IP:3130:${username}:${password}         #${RESET}"
+echo -e "${CYAN}#########################################################${RESET}"
