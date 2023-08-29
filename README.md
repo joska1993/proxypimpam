@@ -1,2 +1,2 @@
 # proxypimpam
-Tutorial levantar proxy PimPamSEO
+Tutorial para levantar rapidamente un proxy siguiendo el tutorial de PimPamSEO.com
