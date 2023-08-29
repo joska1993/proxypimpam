@@ -7,84 +7,59 @@
 # Web Site : https://pimpamseo.com
 # Version : 1.0
 ##############################################################
+echo;/bin/echo -e "\e[1;36m#-------------------------------------------------------------#\e[0m"
+/bin/echo -e "\e[1;36m#             PimPamSEO Proxy Script - Ver 1.0                     #\e[0m"
+/bin/echo -e "\e[1;36m#-------------------------------------------------------------#\e[0m";echo;username=$(head /dev/urandom|tr -dc A-Za-z0-9|head -c 5;echo '');password=$(head /dev/urandom|tr -dc A-Za-z0-9|head -c 5;echo '')
+apt-get update;apt-get upgrade -y;apt-get autoremove -y;apt-get autoclean -y
+IP=$(curl -s eth0.me)
+ISP=$(curl -s https://ipwhois.app/json/$IP)
+#if [[ $ISP != *"Digital"* ]];then echo -e "\e[1;91m ERROR: THIS SCRIPT IS DESIGNED TO WORK WITH DIGITAL OCEAN ONLY! \e[0m";exit 0;fi
+apt-get install fail2ban software-properties-common -y;apt-get install build-essential libevent-dev libssl-dev -y
+rm -rf /usr/local/etc/3proxy
+cd /usr/local/etc
+wget https://github.com/z3APA3A/3proxy/archive/0.8.12.tar.gz
+tar zxvf 0.8.12.tar.gz
+rm 0.8.12.tar.gz
+mv 3proxy-0.8.12 3proxy 
+cd 3proxy
+make -f Makefile.Linux
+make -f Makefile.Linux install
+mkdir log 
+cd cfg
+rm 3proxy.cfg.sample
+echo "#!/usr/local/bin/3proxy
+daemon
+pidfile /usr/local/etc/3proxy/3proxy.pid
+nserver 1.1.1.1
+nserver 1.0.0.1
+nscache 65536
+timeouts 1 5 30 60 180 1800 15 60
+log /usr/local/etc/3proxy/log/3proxy.log D
+logformat \"- +_L%t.%. %N.%p %E %U %C:%c %R:%r %O %I %h %T\"
+archiver rar rar a -df -inul %A %F
+rotate 30
+internal 0.0.0.0
+external 0.0.0.0
+authcache ip 60
 
-# Check for root
-if [[ $EUID -ne 0 ]]; then
-   echo "This script must be run as root."
-   exit 1
-fi
 
-# Function to display the banner
-display_banner() {
-  echo -e "\e[1;34m##############################################################\e[0m"
-  echo -e "\e[1;33m#              PimPamSEO Free Proxy Script - Ver 1.1         #\e[0m"
-  echo -e "\e[1;34m##############################################################\e[0m"
-}
 
-# Function to update and clean the system
-update_system() {
-  apt-get update && \
-  apt-get upgrade -y && \
-  apt-get autoremove -y && \
-  apt-get autoclean -y || {
-    echo "Failed to update and clean the system."
-    exit 1
-  }
-}
 
-# Function to install dependencies
-install_dependencies() {
-  apt-get install -y fail2ban software-properties-common build-essential libevent-dev libssl-dev || {
-    echo "Failed to install dependencies."
-    exit 1
-  }
-}
+proxy -p3130 -a -n
+" >> /usr/local/etc/3proxy/cfg/3proxy.cfg
+chmod 700 3proxy.cfg
+sed -i '14s/.*/       \/usr\/local\/etc\/3proxy\/cfg\/3proxy.cfg/' /usr/local/etc/3proxy/scripts/rc.d/proxy.sh
+sed -i "4ish /usr/local/etc/3proxy/scripts/rc.d/proxy.sh start" /etc/rc.local
+sed -i '17s/.*/auth strong/' /usr/local/etc/3proxy/cfg/3proxy.cfg  
+sed -i "15s/.*/users $username:CL:$password/" /usr/local/etc/3proxy/cfg/3proxy.cfg 
+sed -i "18s/.*/allow $username /" /usr/local/etc/3proxy/cfg/3proxy.cfg 
+PUBLIC_IP=$(curl -s eth0.me)
+sh /usr/local/etc/3proxy/scripts/rc.d/proxy.sh start
 
-# Function to install 3proxy
-install_3proxy() {
-  cd /usr/local/etc || exit 1
-  wget https://github.com/z3APA3A/3proxy/archive/0.8.12.tar.gz || exit 1
-  tar zxvf 0.8.12.tar.gz && rm 0.8.12.tar.gz || exit 1
-  rm -rf /usr/local/etc/3proxy
-  mv 3proxy-0.8.12 3proxy
-  cd 3proxy || exit 1
-  make -f Makefile.Linux && make -f Makefile.Linux install || exit 1
-  mkdir log || exit 1
-}
-
-# Function to start proxy
-start_proxy() {
-  sh /usr/local/etc/3proxy/scripts/rc.d/proxy.sh start || {
-    echo "Failed to start proxy."
-    exit 1
-  }
-}
-
-# Function to display proxy information
-display_info() {
-  local public_ip=$(curl -s eth0.me)
-  echo -e "\e[1;34m#       Proxy: $public_ip:3130:$username:$password           #\e[0m"
-  echo -e "\e[1;34m##############################################################\e[0m"
-}
-
-# Generate username and password
-username=$(tr -dc A-Za-z0-9 < /dev/urandom | head -c 10)
-password=$(tr -dc A-Za-z0-9 < /dev/urandom | head -c 10)
-
-# Show banner
-display_banner
-
-# Update and clean the system
-update_system
-
-# Install dependencies
-install_dependencies
-
-# Install 3proxy
-install_3proxy
-
-# Configure and start proxy
-start_proxy
-
-# Display information
-display_info
+echo
+/bin/echo -e "\e[1;36m#-------------------------------------------------------------#\e[0m"
+/bin/echo -e "\e[1;36m#             PimPamSEO Proxy Script - Ver 1.0                 \e[0m"
+/bin/echo -e "\e[1;36m              Proxy: $PUBLIC_IP:3130:$username:$password                \e[0m"
+/bin/echo -e "\e[1;36m#                                                             #\e[0m"
+/bin/echo -e "\e[1;36m#-------------------------------------------------------------#\e[0m"
+echo
