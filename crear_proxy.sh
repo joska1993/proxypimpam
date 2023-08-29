@@ -8,11 +8,6 @@
 # Version : 1.0
 ##############################################################
 
-echo -e "\e[1;34m##############################################################\e[0m"
-echo -e "\e[1;33m#              PimPamSEO Free Proxy Script - Ver 1.1         #\e[0m"
-echo -e "\e[1;34m##############################################################\e[0m"
-echo
-
 # Check for root
 if [[ $EUID -ne 0 ]]; then
    echo "This script must be run as root."
