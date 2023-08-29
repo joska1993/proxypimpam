@@ -1,24 +1,19 @@
 #!/bin/bash
 
-# Funciones para colores
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-NC='\033[0m' # Sin color
-
 # Verificar si el script se ejecuta como superusuario
 if [ "$EUID" -ne 0 ]; then
-  echo -e "${RED}Por favor, ejecuta este script como superusuario (root).${NC}"
+  echo "Por favor, ejecuta este script como superusuario (root)."
   exit 1
 fi
 
 # Actualizar e instalar paquetes necesarios
-echo -e "${GREEN}Actualizando e instalando paquetes necesarios...${NC}"
+echo "Actualizando e instalando paquetes necesarios..."
 sudo apt update && sudo apt upgrade -y
 sudo apt install -y squid curl
 
 # Instalar apache2-utils si htpasswd no está instalado
 if ! command -v htpasswd &> /dev/null; then
-    echo -e "${GREEN}Instalando apache2-utils para htpasswd...${NC}"
+    echo "Instalando apache2-utils para htpasswd..."
     sudo apt install -y apache2-utils
 fi
 
@@ -28,8 +23,7 @@ read -s -p "Introduce la contraseña para el proxy: " PASSWORD
 echo
 
 # Configuración de Squid
-echo -e "${GREEN}Configurando Squid...${NC}"
-
+echo "Configurando Squid..."
 sudo bash -c "cat <<EOL > /etc/squid/squid.conf
 auth_param basic program /usr/lib/squid/basic_ncsa_auth /etc/squid/passwd
 auth_param basic children 5
@@ -42,25 +36,25 @@ http_port 3128
 EOL"
 
 # Crear o actualizar el archivo de contraseñas
-echo -e "${GREEN}Configurando usuario y contraseña...${NC}"
+echo "Configurando usuario y contraseña..."
 sudo touch /etc/squid/passwd
 sudo htpasswd -b /etc/squid/passwd $USERNAME $PASSWORD
 
 # Apertura del puerto 3128 en el firewall
-echo -e "${GREEN}Configurando firewall para permitir el puerto 3128...${NC}"
+echo "Configurando firewall para permitir el puerto 3128..."
 sudo ufw allow 3128/tcp
 
 # Reiniciar Squid
-echo -e "${GREEN}Reiniciando Squid...${NC}"
+echo "Reiniciando Squid..."
 sudo systemctl restart squid
 
 # Verificar si Squid está funcionando
 if sudo systemctl is-active --quiet squid; then
-  echo -e "${GREEN}Tu proxy está listo.${NC}"
+  echo "Tu proxy está listo."
   echo "IP: $(curl -s ifconfig.me)"
   echo "Puerto: 3128"
   echo "Usuario: $USERNAME"
   echo "Contraseña: $PASSWORD"
 else
-  echo -e "${RED}Hubo un problema al configurar Squid. Por favor, verifica los logs para más detalles.${NC}"
+  echo "Hubo un problema al configurar Squid. Por favor, verifica los logs para más detalles."
 fi
