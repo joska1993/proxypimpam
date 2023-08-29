@@ -9,36 +9,29 @@ fi
 # Actualizar e instalar paquetes necesarios
 echo "Actualizando e instalando paquetes necesarios..."
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y squid curl apache2-utils
-
-# Verificar si htpasswd está instalado
-if ! command -v htpasswd &> /dev/null; then
-    echo "No se pudo instalar apache2-utils. Por favor, instálalo manualmente y vuelve a ejecutar el script."
-    exit 1
-fi
+sudo apt install -y squid curl
 
 # Pedir información del usuario
 read -p "Introduce el nombre de usuario para el proxy: " USERNAME
 read -s -p "Introduce la contraseña para el proxy: " PASSWORD
 echo
 
+# Guardar usuario y contraseña en un archivo
+echo "$USERNAME:$PASSWORD" > /etc/squid/squid_passwords
+
 # Configuración de Squid
 echo "Configurando Squid..."
 sudo bash -c "cat <<EOL > /etc/squid/squid.conf
-auth_param basic program /usr/lib/squid/basic_ncsa_auth /etc/squid/passwd
+auth_param basic program /usr/lib/squid/basic_fake_auth /etc/squid/squid_passwords
 auth_param basic children 5
-auth_param basic realm Proxy
+auth_param basic realm Squid Basic Authentication
 auth_param basic credentialsttl 2 hours
-acl authenticated proxy_auth REQUIRED
-http_access allow authenticated
+auth_param basic casesensitive off
+acl auth_users proxy_auth REQUIRED
+http_access allow auth_users
 http_access deny all
 http_port 3128
 EOL"
-
-# Crear o actualizar el archivo de contraseñas
-echo "Configurando usuario y contraseña..."
-sudo touch /etc/squid/passwd
-sudo htpasswd -b /etc/squid/passwd $USERNAME $PASSWORD
 
 # Apertura del puerto 3128 en el firewall
 echo "Configurando firewall para permitir el puerto 3128..."
