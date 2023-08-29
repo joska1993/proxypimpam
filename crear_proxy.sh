@@ -9,12 +9,12 @@ fi
 # Actualizar e instalar paquetes necesarios
 echo "Actualizando e instalando paquetes necesarios..."
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y squid curl
+sudo apt install -y squid curl apache2-utils
 
-# Instalar apache2-utils si htpasswd no está instalado
+# Verificar si htpasswd está instalado
 if ! command -v htpasswd &> /dev/null; then
-    echo "Instalando apache2-utils para htpasswd..."
-    sudo apt install -y apache2-utils
+    echo "No se pudo instalar apache2-utils. Por favor, instálalo manualmente y vuelve a ejecutar el script."
+    exit 1
 fi
 
 # Pedir información del usuario
