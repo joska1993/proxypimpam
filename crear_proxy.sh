@@ -13,74 +13,82 @@ echo -e "\e[1;33m#              PimPamSEO Free Proxy Script - Ver 1.1         #\
 echo -e "\e[1;34m##############################################################\e[0m"
 echo
 
-# Generar usuario y contraseña aleatorios
-username=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 5 ; echo '')
-password=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 5 ; echo '')
+# Check for root
+if [[ $EUID -ne 0 ]]; then
+   echo "This script must be run as root."
+   exit 1
+fi
 
-# Actualización y limpieza del sistema
-apt-get update
-apt-get upgrade -y
-apt-get autoremove -y
-apt-get autoclean -y
+# Function to display the banner
+display_banner() {
+  echo -e "\e[1;34m##############################################################\e[0m"
+  echo -e "\e[1;33m#              PimPamSEO Free Proxy Script - Ver 1.1         #\e[0m"
+  echo -e "\e[1;34m##############################################################\e[0m"
+}
 
-# Obtener IP pública e ISP
-IP=$(curl -s eth0.me)
-ISP=$(curl -s https://ipwhois.app/json/$IP)
+# Function to update and clean the system
+update_system() {
+  apt-get update && \
+  apt-get upgrade -y && \
+  apt-get autoremove -y && \
+  apt-get autoclean -y || {
+    echo "Failed to update and clean the system."
+    exit 1
+  }
+}
 
-# Instalar dependencias
-apt-get install fail2ban software-properties-common -y
-apt-get install build-essential libevent-dev libssl-dev -y
+# Function to install dependencies
+install_dependencies() {
+  apt-get install -y fail2ban software-properties-common build-essential libevent-dev libssl-dev || {
+    echo "Failed to install dependencies."
+    exit 1
+  }
+}
 
-# Descargar e instalar 3proxy
-rm -rf /usr/local/etc/3proxy
-cd /usr/local/etc
-wget https://github.com/z3APA3A/3proxy/archive/0.8.12.tar.gz
-tar zxvf 0.8.12.tar.gz
-rm 0.8.12.tar.gz
-mv 3proxy-0.8.12 3proxy
-cd 3proxy
-make -f Makefile.Linux
-make -f Makefile.Linux install
-mkdir log
-cd cfg
-rm 3proxy.cfg.sample
+# Function to install 3proxy
+install_3proxy() {
+  cd /usr/local/etc || exit 1
+  wget https://github.com/z3APA3A/3proxy/archive/0.8.12.tar.gz || exit 1
+  tar zxvf 0.8.12.tar.gz && rm 0.8.12.tar.gz || exit 1
+  mv 3proxy-0.8.12 3proxy || exit 1
+  cd 3proxy || exit 1
+  make -f Makefile.Linux && make -f Makefile.Linux install || exit 1
+  mkdir log || exit 1
+}
 
-echo "#!/usr/local/bin/3proxy
-daemon
-pidfile /usr/local/etc/3proxy/3proxy.pid
-nserver 1.1.1.1
-nserver 1.0.0.1
-nscache 65536
-timeouts 1 5 30 60 180 1800 15 60
-log /usr/local/etc/3proxy/log/3proxy.log D
-logformat \"- +_L%t.%. %N.%p %E %U %C:%c %R:%r %O %I %h %T\"
-archiver rar rar a -df -inul %A %F
-rotate 30
-internal 0.0.0.0
-external 0.0.0.0
-authcache ip 60
+# Function to start proxy
+start_proxy() {
+  sh /usr/local/etc/3proxy/scripts/rc.d/proxy.sh start || {
+    echo "Failed to start proxy."
+    exit 1
+  }
+}
 
+# Function to display proxy information
+display_info() {
+  local public_ip=$(curl -s eth0.me)
+  echo -e "\e[1;34m#       Proxy: $public_ip:3130:$username:$password           #\e[0m"
+  echo -e "\e[1;34m##############################################################\e[0m"
+}
 
+# Generate username and password
+username=$(tr -dc A-Za-z0-9 < /dev/urandom | head -c 10)
+password=$(tr -dc A-Za-z0-9 < /dev/urandom | head -c 10)
 
+# Show banner
+display_banner
 
-proxy -p3130 -a -n
-" >> /usr/local/etc/3proxy/cfg/3proxy.cfg
-chmod 700 3proxy.cfg
-sed -i '14s/.*/       \/usr\/local\/etc\/3proxy\/cfg\/3proxy.cfg/' /usr/local/etc/3proxy/scripts/rc.d/proxy.sh
-sed -i "4ish /usr/local/etc/3proxy/scripts/rc.d/proxy.sh start" /etc/rc.local
-sed -i '17s/.*/auth strong/' /usr/local/etc/3proxy/cfg/3proxy.cfg  
-sed -i "15s/.*/users $username:CL:$password/" /usr/local/etc/3proxy/cfg/3proxy.cfg 
-sed -i "18s/.*/allow $username /" /usr/local/etc/3proxy/cfg/3proxy.cfg 
-PUBLIC_IP=$(curl -s eth0.me)
+# Update and clean the system
+update_system
 
-# Iniciar el proxy
-sh /usr/local/etc/3proxy/scripts/rc.d/proxy.sh start
+# Install dependencies
+install_dependencies
 
-# Mostrar información del proxy
-PUBLIC_IP=$(curl -s eth0.me)
-echo
-echo -e "\e[1;34m##############################################################\e[0m"
-echo -e "\e[1;33m#       Free Proxy Script Created by PimPamSEO - Ver 1.1     #\e[0m"
-echo -e "\e[1;34m#       Proxy: $PUBLIC_IP:3130:$username:$password           #\e[0m"
-echo -e "\e[1;34m##############################################################\e[0m"
-echo
+# Install 3proxy
+install_3proxy
+
+# Configure and start proxy
+start_proxy
+
+# Display information
+display_info
